@@ -6,6 +6,7 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 import view.Log;
 
@@ -16,9 +17,10 @@ import java.util.Map;
 public class BulkIndexer {
     public void execute(ElasticConfiguration elasticConfiguration, String index, List<Map<String, Object>> jsonData) throws IOException {
         BulkRequest bulkRequest = new BulkRequest();
-        
-        elasticConfiguration.getElasticClient().indices().delete(new DeleteIndexRequest(index), RequestOptions.DEFAULT);
 
+        if (indexExists(elasticConfiguration, index)) {
+            elasticConfiguration.getElasticClient().indices().delete(new DeleteIndexRequest(index), RequestOptions.DEFAULT);
+        }
 
         for (Map<String, Object> data : jsonData) {
             IndexRequest indexRequest = new IndexRequest(index).source(data, XContentType.JSON);
@@ -32,5 +34,11 @@ public class BulkIndexer {
         } else {
             Log.info(BulkIndexer.class.getName(), "Bulk insert successful");
         }
+    }
+
+    private boolean indexExists(ElasticConfiguration elasticConfiguration, String index) throws IOException {
+        return elasticConfiguration.getElasticClient()
+                .indices()
+                .exists(new GetIndexRequest(index), RequestOptions.DEFAULT);
     }
 }

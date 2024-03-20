@@ -2,43 +2,38 @@ package service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import constant.ActionType;
+import constant.Keyword;
 import view.Log;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 public class ConfigService {
-    private final String filePath;
-    private final Map<String, Object> configData;
+    private Map<String, Map<String, Object>> configData;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ConfigService(String filePath) throws IOException {
-        this.filePath = filePath;
         this.configData = loadJsonFromFile(filePath);
     }
 
-    private Map<String, Object> loadJsonFromFile(String filePath) throws IOException {
-        Map<String, Object> data;
-        data = objectMapper.readValue(new File(filePath), new TypeReference<Map<String, Object>>() {
+    private Map<String, Map<String, Object>> loadJsonFromFile(String filePath) throws IOException {
+        configData = objectMapper.readValue(new File(filePath), new TypeReference<Map<String, Map<String, Object>>>() {
         });
         Log.info(ConfigService.class.getName(), "read Config File.");
-        return data;
+        return configData;
     }
 
-    public String getActionType() {
-        return configData.get("actionType").toString();
+    public Map<String, Object> getDeleteConfig() {
+        return configData.get(ActionType.DELETE.get());
     }
 
-    public List<String> getIdList() {
-        String id = configData.get("id").toString().replaceAll("\\[", "").replaceAll("]", "");
-        List<String> idList = Arrays.asList(id.split(", "));
-        return idList;
+    public Map<String, Object> getUpdateConfig() {
+        return configData.get(ActionType.UPDATE.get());
     }
 
-    public String getKey() {
-        return configData.get("key").toString();
+    public String getDumpPath() {
+        return configData.get(ActionType.INSERT.get()).get(Keyword.DUMP_PATH.get()).toString();
     }
 }

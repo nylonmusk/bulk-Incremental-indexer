@@ -9,6 +9,7 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.elasticsearch.index.reindex.UpdateByQueryRequest;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
@@ -52,6 +53,21 @@ public class IncrementalIndexer {
             }
         } else {
             Log.info(IncrementalIndexer.class.getName(), "Bulk update successful");
+        }
+    }
+
+    public void delete(ElasticConfiguration elasticConfiguration, String index, String column, String target) throws IOException {
+        DeleteByQueryRequest deleteRequest = new DeleteByQueryRequest(index);
+        deleteRequest.setQuery(QueryBuilders.matchQuery(column, target));
+
+        BulkByScrollResponse bulkResponse = elasticConfiguration.getElasticClient().deleteByQuery(deleteRequest, RequestOptions.DEFAULT);
+        List<BulkItemResponse.Failure> bulkFailures = bulkResponse.getBulkFailures();
+        if (!bulkFailures.isEmpty()) {
+            for (BulkItemResponse.Failure failure : bulkFailures) {
+                Log.error(IncrementalIndexer.class.getName(), "Bulk delete failed: " + failure.getMessage());
+            }
+        } else {
+            Log.info(IncrementalIndexer.class.getName(), "Bulk delete successful");
         }
     }
 }

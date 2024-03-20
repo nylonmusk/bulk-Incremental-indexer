@@ -1,16 +1,24 @@
 package incremental;
 
 import config.ElasticConfiguration;
+import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.elasticsearch.index.reindex.UpdateByQueryRequest;
+import org.elasticsearch.script.Script;
+import org.elasticsearch.script.ScriptType;
 import view.Log;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
 
 public class IncrementalIndexer {
 
@@ -25,6 +33,25 @@ public class IncrementalIndexer {
             Log.error(IncrementalIndexer.class.getName(), "Bulk insert failed: " + bulkResponse.buildFailureMessage());
         } else {
             Log.info(IncrementalIndexer.class.getName(), "Bulk insert successful");
+        }
+    }
+
+    public void update(ElasticConfiguration elasticConfiguration, String index, String column, String target, String key) throws IOException {
+        UpdateByQueryRequest updateRequest = new UpdateByQueryRequest(index);
+        updateRequest.setQuery(QueryBuilders.matchQuery(column, target));
+
+        Script script = new Script(ScriptType.INLINE, "painless", "if (ctx._source['" + column + "'] == '" + target + "') { ctx._source['" + column + "'] = '" + key + "' }", Collections.emptyMap());
+
+        updateRequest.setScript(script);
+
+        BulkByScrollResponse bulkResponse = elasticConfiguration.getElasticClient().updateByQuery(updateRequest, RequestOptions.DEFAULT);
+        List<BulkItemResponse.Failure> bulkFailures = bulkResponse.getBulkFailures();
+        if (!bulkFailures.isEmpty()) {
+            for (BulkItemResponse.Failure failure : bulkFailures) {
+                Log.error(IncrementalIndexer.class.getName(), "Bulk update failed: " + failure.getMessage());
+            }
+        } else {
+            Log.info(IncrementalIndexer.class.getName(), "Bulk update successful");
         }
     }
 }

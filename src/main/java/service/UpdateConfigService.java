@@ -1,6 +1,7 @@
 package service;
 
 import constant.Keyword;
+import validation.ConfigValidator;
 
 import java.util.Map;
 
@@ -12,19 +13,32 @@ public class UpdateConfigService {
     }
 
     public String getIndex() {
-        return updateConfig.get(Keyword.INDEX.get()).toString();
+        if (ConfigValidator.isValid(Keyword.INDEX.get(), updateConfig)) {
+            return updateConfig.get(Keyword.INDEX.get()).toString();
+        }
+        return null;
     }
 
     public String getColumn() {
-        return updateConfig.get(Keyword.COLUMN.get()).toString();
+        if (ConfigValidator.isValid(Keyword.COLUMN.get(), updateConfig)) {
+            return updateConfig.get(Keyword.COLUMN.get()).toString();
+        }
+        return null;
     }
 
     public String getTarget() {
-        return updateConfig.get(Keyword.TARGET.get()).toString();
+        if (ConfigValidator.isValid(Keyword.TARGET.get(), updateConfig)) {
+            return updateConfig.get(Keyword.TARGET.get()).toString();
+        }
+        return null;
     }
 
     public String getKey() {
-        return updateConfig.get(Keyword.KEY.get()).toString();
+
+        if (ConfigValidator.isValid(Keyword.KEY.get(), updateConfig)) {
+            updateConfig.get(Keyword.KEY.get()).toString();
+        }
+        return null;
     }
 }
 

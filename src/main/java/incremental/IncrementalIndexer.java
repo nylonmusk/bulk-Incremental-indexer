@@ -42,7 +42,6 @@ public class IncrementalIndexer {
         updateRequest.setQuery(QueryBuilders.matchQuery(column, target));
 
         Script script = new Script(ScriptType.INLINE, "painless", "if (ctx._source['" + column + "'] == '" + target + "') { ctx._source['" + column + "'] = '" + key + "' }", Collections.emptyMap());
-
         updateRequest.setScript(script);
 
         BulkByScrollResponse bulkResponse = elasticConfiguration.getElasticClient().updateByQuery(updateRequest, RequestOptions.DEFAULT);

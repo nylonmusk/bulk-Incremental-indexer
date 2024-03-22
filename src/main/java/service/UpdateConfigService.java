@@ -34,9 +34,8 @@ public class UpdateConfigService {
     }
 
     public String getKey() {
-
         if (ConfigValidator.isValid(Keyword.KEY.get(), updateConfig)) {
-            updateConfig.get(Keyword.KEY.get()).toString();
+            return updateConfig.get(Keyword.KEY.get()).toString();
         }
         return null;
     }

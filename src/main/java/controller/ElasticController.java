@@ -1,13 +1,15 @@
 package controller;
 
-import builder.ElasticControllerBuilder;
+
 import bulk.BulkIndexer;
-import dump.DataReader;
 import config.ElasticConfiguration;
-import incremental.IncrementalIndexer;
+import constant.ActionType;
+import constant.Server;
+import dump.DataReader;
+import incremental.DeleteIndexer;
+import incremental.PutIndexer;
+import incremental.UpdateIndexer;
 import service.ConfigService;
-import service.DeleteConfigService;
-import service.UpdateConfigService;
 import view.Log;
 
 import java.io.IOException;
@@ -15,46 +17,51 @@ import java.util.List;
 import java.util.Map;
 
 public class ElasticController {
-    private final String HOST = "localhost";
-    private final int PORT = 9200;
-    private final String USER = "";
-    private final String PROTOCOL = "http";
+    private ConfigService configService;
+    private DataReader dataReader = new DataReader();
 
-    private final DataReader dataReader;
-    private final BulkIndexer bulkIndexer;
-    private final IncrementalIndexer incrementalIndexer;
-    private final ConfigService configService;
-    private final DeleteConfigService deleteConfigService;
-    private final UpdateConfigService updateConfigService;
-
-    public ElasticController(DataReader dataReader,
-                             BulkIndexer bulkIndexer,
-                             IncrementalIndexer incrementalIndexer,
-                             ConfigService configService,
-                             DeleteConfigService deleteConfigService,
-                             UpdateConfigService updateConfigService) {
-        this.dataReader = dataReader;
-        this.bulkIndexer = bulkIndexer;
-        this.incrementalIndexer = incrementalIndexer;
-        this.configService = configService;
-        this.deleteConfigService = deleteConfigService;
-        this.updateConfigService = updateConfigService;
+    public ElasticController(String configFilePath) {
+        this.configService = new ConfigService(configFilePath);
     }
 
     public void execute() {
+        final String HOST = configService.getServerConfig(Server.HOST).toString();
+        final int PORT = (int) configService.getServerConfig(Server.PORT);
+        final String USER = configService.getServerConfig(Server.USER).toString();
+        final String PROTOCOL = configService.getServerConfig(Server.PROTOCOL).toString();
+        final String INDEX = configService.getServerConfig(Server.INDEX).toString();
+
         try (ElasticConfiguration elasticConfiguration = new ElasticConfiguration(HOST, PORT, USER, PROTOCOL)) {
-            List<Map<String, Object>> jsonData = dataReader.readJsonFile(configService.getDumpPath());
-            String INDEX = deleteConfigService.getIndex();
-            bulkIndexer.execute(elasticConfiguration, INDEX, jsonData);
-            incrementalIndexer.insert(elasticConfiguration, INDEX, jsonData);
-            incrementalIndexer.update(elasticConfiguration, INDEX, updateConfigService.getColumn(), updateConfigService.getTarget(), updateConfigService.getKey());
-            incrementalIndexer.delete(elasticConfiguration, INDEX, deleteConfigService.getColumn(), deleteConfigService.getTarget());
+
+            if (configService.hasActionType(ActionType.PUT)) put(elasticConfiguration, INDEX);
+            if (configService.hasActionType(ActionType.INSERT)) insert(elasticConfiguration, INDEX);
+            if (configService.hasActionType(ActionType.UPDATE)) update(elasticConfiguration, INDEX);
+            if (configService.hasActionType(ActionType.DELETE)) delete(elasticConfiguration, INDEX);
+
         } catch (IOException e) {
             Log.error(ElasticController.class.getName(), "execute failed");
         }
     }
 
-    public static ElasticControllerBuilder builder() {
-        return new ElasticControllerBuilder();
+    private void put(ElasticConfiguration elasticConfiguration, String index) throws IOException {
+        List<Map<String, Object>> jsonData = dataReader.readJsonFileToList(configService.getDumpPath(ActionType.PUT));
+        BulkIndexer bulkIndexer = new BulkIndexer(configService.getPutConfig(), jsonData);
+        bulkIndexer.put(elasticConfiguration, index);
+    }
+
+    private void insert(ElasticConfiguration elasticConfiguration, String index) throws IOException {
+        List<Map<String, Object>> jsonData = dataReader.readJsonFileToList(configService.getDumpPath(ActionType.INSERT));
+        PutIndexer putIndexer = new PutIndexer(jsonData);
+        putIndexer.put(elasticConfiguration, index, jsonData);
+    }
+
+    private void update(ElasticConfiguration elasticConfiguration, String index) throws IOException {
+        UpdateIndexer updateIndexer = new UpdateIndexer();
+        updateIndexer.update(elasticConfiguration, index, configService.getUpdateConfig());
+    }
+
+    private void delete(ElasticConfiguration elasticConfiguration, String index) throws IOException {
+        DeleteIndexer deleteIndexer = new DeleteIndexer();
+        deleteIndexer.delete(elasticConfiguration, index, configService.getDeleteConfig());
     }
 }

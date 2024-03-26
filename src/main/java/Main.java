@@ -1,25 +1,10 @@
-import bulk.BulkIndexer;
 import controller.ElasticController;
-import dump.DataReader;
-import incremental.IncrementalIndexer;
-import service.ConfigService;
-import service.DeleteConfigService;
-import service.UpdateConfigService;
-
-import java.io.IOException;
 
 public class Main {
-    public static void main(String[] args) throws IOException {
-        ConfigService configService = new ConfigService("C:\\Users\\mayfarm\\Documents\\indexerConfig.json");
+    public static void main(String[] args) {
+        final String configFilePath = args[0];
 
-        ElasticController elasticController = ElasticController.builder()
-                .withDataReader(new DataReader())
-                .withBulkIndexer(new BulkIndexer())
-                .withIncrementalIndexer(new IncrementalIndexer())
-                .withConfigService(configService)
-                .withDeleteConfigService(new DeleteConfigService(configService.getDeleteConfig()))
-                .withUpdateConfigService(new UpdateConfigService(configService.getUpdateConfig()))
-                .build();
+        ElasticController elasticController = new ElasticController(configFilePath);
         elasticController.execute();
     }
 }

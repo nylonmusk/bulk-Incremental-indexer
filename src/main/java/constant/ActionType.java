@@ -1,6 +1,8 @@
 package constant;
 
 public enum ActionType {
+    SERVER("server"),
+    PUT("put"),
     INSERT("insert"),
     UPDATE("update"),
     DELETE("delete");

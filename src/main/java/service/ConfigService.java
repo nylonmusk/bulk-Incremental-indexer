@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import constant.ActionType;
 import constant.Keyword;
+import constant.Server;
 import validation.ConfigValidator;
 import view.Log;
 
@@ -32,6 +33,31 @@ public class ConfigService {
         return Collections.emptyMap();
     }
 
+    public boolean hasActionType(ActionType type) {
+        return configData.containsKey(type.get());
+    }
+
+    public Object getServerConfig(Server server) {
+        if (ConfigValidator.isValid(configData, ActionType.SERVER.get())) {
+            return configData.get(ActionType.SERVER.get()).get(server.get());
+        }
+        return null;
+    }
+
+    public Map<String, Object> getPutConfig() {
+        if (ConfigValidator.isValid(configData, ActionType.PUT.get())) {
+            return configData.get(ActionType.PUT.get());
+        }
+        return Collections.EMPTY_MAP;
+    }
+
+    public Map<String, Object> getInsertConfig() {
+        if (ConfigValidator.isValid(configData, ActionType.INSERT.get())) {
+            return configData.get(ActionType.INSERT.get());
+        }
+        return Collections.EMPTY_MAP;
+    }
+
     public Map<String, Object> getDeleteConfig() {
         if (ConfigValidator.isValid(configData, ActionType.DELETE.get())) {
             return configData.get(ActionType.DELETE.get());
@@ -46,9 +72,9 @@ public class ConfigService {
         return Collections.EMPTY_MAP;
     }
 
-    public String getDumpPath() {
-        if (ConfigValidator.isValid(configData, ActionType.INSERT.get(), Keyword.DUMP_PATH.get())) {
-            return configData.get(ActionType.INSERT.get()).get(Keyword.DUMP_PATH.get()).toString();
+    public String getDumpPath(ActionType type) {
+        if (ConfigValidator.isValid(configData, type.get(), Keyword.DUMP_PATH.get())) {
+            return configData.get(type.get()).get(Keyword.DUMP_PATH.get()).toString();
         }
         return null;
     }

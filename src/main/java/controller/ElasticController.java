@@ -1,11 +1,11 @@
 package controller;
 
-import incremental.BulkIndexer;
 import config.ElasticConfiguration;
-import constant.ActionType;
-import constant.Server;
+import constant.Type;
+import constant.column.Server;
 import dump.DataReader;
 import incremental.DeleteIndexer;
+import incremental.InsertIndexer;
 import incremental.PutIndexer;
 import incremental.UpdateIndexer;
 import service.ConfigService;
@@ -24,43 +24,48 @@ public class ElasticController {
     }
 
     public void execute() {
-        final String HOST = configService.getServerConfig(Server.HOST).toString();
-        final int PORT = (int) configService.getServerConfig(Server.PORT);
-        final String USER = configService.getServerConfig(Server.USER).toString();
-        final String PROTOCOL = configService.getServerConfig(Server.PROTOCOL).toString();
-        final String INDEX = configService.getServerConfig(Server.INDEX).toString();
+        final String HOST = configService.getConfig(Server.HOST).toString();
+        final int PORT = (int) configService.getConfig(Server.PORT);
+        final String USER = configService.getConfig(Server.USER).toString();
+        final String PROTOCOL = configService.getConfig(Server.PROTOCOL).toString();
+        final String INDEX = configService.getConfig(Server.INDEX).toString();
 
         try (ElasticConfiguration elasticConfiguration = new ElasticConfiguration(HOST, PORT, USER, PROTOCOL)) {
 
-            if (configService.hasActionType(ActionType.PUT)) put(elasticConfiguration, INDEX);
-            if (configService.hasActionType(ActionType.INSERT)) insert(elasticConfiguration, INDEX);
-            if (configService.hasActionType(ActionType.UPDATE)) update(elasticConfiguration, INDEX);
-            if (configService.hasActionType(ActionType.DELETE)) delete(elasticConfiguration, INDEX);
+            if (configService.hasActionType(Type.PUT)) execute(elasticConfiguration, INDEX, Type.PUT);
+            if (configService.hasActionType(Type.INSERT)) execute(elasticConfiguration, INDEX, Type.INSERT);
+            if (configService.hasActionType(Type.UPDATE)) execute(elasticConfiguration, INDEX, Type.UPDATE);
+            if (configService.hasActionType(Type.DELETE)) execute(elasticConfiguration, INDEX, Type.DELETE);
 
         } catch (IOException e) {
             Log.error(ElasticController.class.getName(), "execute failed");
         }
     }
 
-    private void put(ElasticConfiguration elasticConfiguration, String index) throws IOException {
-        List<Map<String, Object>> jsonData = dataReader.readJsonFileToList(configService.getDumpPath(ActionType.PUT));
-        BulkIndexer bulkIndexer = new BulkIndexer(configService.getPutConfig(), jsonData, elasticConfiguration, index);
-        bulkIndexer.put();
-    }
+    private void execute(ElasticConfiguration elasticConfiguration, String index, Type type) throws IOException {
+        List<Map<String, Object>> jsonData = dataReader.readJsonFileToList(configService.getDumpPath(type));
 
-    private void insert(ElasticConfiguration elasticConfiguration, String index) throws IOException {
-        List<Map<String, Object>> jsonData = dataReader.readJsonFileToList(configService.getDumpPath(ActionType.INSERT));
-        PutIndexer putIndexer = new PutIndexer(jsonData, elasticConfiguration, index);
-        putIndexer.put();
-    }
+        if (type == Type.PUT) {
+            PutIndexer putIndexer = new PutIndexer(elasticConfiguration, jsonData, index, configService.getConfig(type));
+            putIndexer.execute();
+            return;
+        }
 
-    private void update(ElasticConfiguration elasticConfiguration, String index) throws IOException {
-        UpdateIndexer updateIndexer = new UpdateIndexer(configService.getUpdateConfig(), elasticConfiguration, index);
-        updateIndexer.update();
-    }
+        if (type == Type.INSERT) {
+            InsertIndexer insertIndexer = new InsertIndexer(elasticConfiguration, jsonData, index, configService.getConfig(type));
+            insertIndexer.execute();
+            return;
+        }
 
-    private void delete(ElasticConfiguration elasticConfiguration, String index) throws IOException {
-        DeleteIndexer deleteIndexer = new DeleteIndexer(configService.getDeleteConfig(), elasticConfiguration, index);
-        deleteIndexer.delete();
+        if (type == Type.UPDATE) {
+            UpdateIndexer updateIndexer = new UpdateIndexer(elasticConfiguration, jsonData, index, configService.getConfig(type));
+            updateIndexer.execute();
+            return;
+        }
+
+        if (type == Type.DELETE) {
+            DeleteIndexer deleteIndexer = new DeleteIndexer(elasticConfiguration, jsonData, index, configService.getConfig(type));
+            deleteIndexer.execute();
+        }
     }
 }

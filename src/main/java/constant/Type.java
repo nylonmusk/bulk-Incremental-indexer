@@ -1,6 +1,6 @@
 package constant;
 
-public enum ActionType {
+public enum Type {
     SERVER("server"),
     PUT("put"),
     INSERT("insert"),
@@ -9,7 +9,7 @@ public enum ActionType {
 
     private final String type;
 
-    ActionType(String type) {
+    Type(String type) {
         this.type = type;
     }
 

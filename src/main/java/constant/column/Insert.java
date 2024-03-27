@@ -1,11 +1,12 @@
-package constant;
+package constant.column;
 
-public enum Delete {
-    ID("id");
+public enum Insert {
+    ID("id"),
+    DUMP_PATH("dumpPath");
 
     private final String keyword;
 
-    Delete(String keyword) {
+    Insert(String keyword) {
         this.keyword = keyword;
     }
 

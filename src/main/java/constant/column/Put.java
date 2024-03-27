@@ -1,6 +1,7 @@
-package constant;
+package constant.column;
 
 public enum Put {
+    ID("id"),
     SETTINGS("settings"),
     MAPPINGS("mappings"),
     DUMP_PATH("dumpPath");

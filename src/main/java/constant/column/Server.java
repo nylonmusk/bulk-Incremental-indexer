@@ -1,4 +1,4 @@
-package constant;
+package constant.column;
 
 public enum Server {
     HOST("host"),

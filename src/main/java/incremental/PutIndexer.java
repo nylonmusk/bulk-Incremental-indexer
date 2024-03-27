@@ -1,11 +1,14 @@
 package incremental;
 
 import config.ElasticConfiguration;
+import constant.column.Put;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 import view.Log;
 
@@ -13,30 +16,61 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public class PutIndexer {
-    List<Map<String, Object>> jsonData;
-    ElasticConfiguration elasticConfiguration;
-    String index;
+public class PutIndexer extends Indexer {
 
-    public PutIndexer(List<Map<String, Object>> jsonData, ElasticConfiguration elasticConfiguration, String index) {
-        this.jsonData = jsonData;
-        this.elasticConfiguration = elasticConfiguration;
-        this.index = index;
+    public PutIndexer(ElasticConfiguration elasticConfiguration, List<Map<String, Object>> jsonData, String index, Map<String, Object> putConfig) {
+        super(elasticConfiguration, jsonData, index, putConfig);
     }
 
-    public void put() throws IOException {
-        BulkRequest bulkRequest = new BulkRequest();
+    @Override
+    public void execute() throws IOException {
+
+        if (indexExists(elasticConfiguration, index)) {
+            elasticConfiguration.getElasticClient().indices().delete(new DeleteIndexRequest(index), RequestOptions.DEFAULT);
+        }
+
+        final BulkRequest bulkRequest = new BulkRequest();
+        final String id = getId();
+        final Map<String, Object> settings = getSettings();
+        final Map<String, Object> mappings = getMappings();
+
+        final CreateIndexRequest createIndexRequest = new CreateIndexRequest(index);
+        createIndexRequest.settings(settings);
+        createIndexRequest.mapping(mappings);
+
         for (Map<String, Object> data : jsonData) {
-            IndexRequest indexRequest = new IndexRequest(index).source(data, XContentType.JSON);
+            IndexRequest indexRequest = new IndexRequest(index)
+                    .id(data.get(id).toString())
+                    .source(data, XContentType.JSON);
             bulkRequest.add(indexRequest);
         }
 
         BulkResponse bulkResponse = elasticConfiguration.getElasticClient().bulk(bulkRequest, RequestOptions.DEFAULT);
         bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
         if (bulkResponse.hasFailures()) {
-            Log.error(PutIndexer.class.getName(), "Bulk insert failed: " + bulkResponse.buildFailureMessage());
+            Log.info(PutIndexer.class.getName(), "Bulk insert failed: " + bulkResponse.buildFailureMessage());
         } else {
             Log.info(PutIndexer.class.getName(), "Bulk insert successful");
         }
+    }
+
+    private String getId() {
+        return config.get(Put.ID.get()).toString();
+    }
+
+    private Map<String, Object> getSettings() {
+        return (Map<String, Object>) config.get(Put.SETTINGS.get());
+    }
+
+    private Map<String, Object> getMappings() {
+        return (Map<String, Object>) config.get(Put.MAPPINGS.get());
+    }
+
+    private Map<String, Object> getDump() {
+        return (Map<String, Object>) config.get(Put.DUMP_PATH.get());
+    }
+
+    private boolean indexExists(ElasticConfiguration elasticConfiguration, String index) throws IOException {
+        return elasticConfiguration.getElasticClient().indices().exists(new org.elasticsearch.client.indices.GetIndexRequest(index), RequestOptions.DEFAULT);
     }
 }

@@ -1,8 +1,8 @@
 package controller;
 
 import config.ElasticConfiguration;
+import constant.Key;
 import constant.Type;
-import constant.column.Server;
 import dump.DataReader;
 import incremental.DeleteIndexer;
 import incremental.InsertIndexer;
@@ -24,11 +24,11 @@ public class ElasticController {
     }
 
     public void execute() {
-        final String HOST = configService.getConfig(Server.HOST).toString();
-        final int PORT = (int) configService.getConfig(Server.PORT);
-        final String USER = configService.getConfig(Server.USER).toString();
-        final String PROTOCOL = configService.getConfig(Server.PROTOCOL).toString();
-        final String INDEX = configService.getConfig(Server.INDEX).toString();
+        final String HOST = configService.getConfig(Key.HOST).toString();
+        final int PORT = (int) configService.getConfig(Key.PORT);
+        final String USER = configService.getConfig(Key.USER).toString();
+        final String PROTOCOL = configService.getConfig(Key.PROTOCOL).toString();
+        final String INDEX = configService.getConfig(Key.INDEX).toString();
 
         try (ElasticConfiguration elasticConfiguration = new ElasticConfiguration(HOST, PORT, USER, PROTOCOL)) {
 
@@ -37,6 +37,7 @@ public class ElasticController {
             if (configService.hasActionType(Type.UPDATE)) execute(elasticConfiguration, INDEX, Type.UPDATE);
             if (configService.hasActionType(Type.DELETE)) execute(elasticConfiguration, INDEX, Type.DELETE);
 
+            Log.info(ElasticController.class.getName(), "Bulk done successfully");
         } catch (IOException e) {
             Log.error(ElasticController.class.getName(), "execute failed");
         }

@@ -1,6 +1,12 @@
-package constant.column;
+package constant;
 
-public enum Server {
+public enum Key {
+    ID("id"),
+    DUMP_PATH("dumpPath"),
+
+    SETTINGS("settings"),
+    MAPPINGS("mappings"),
+
     HOST("host"),
     PORT("port"),
     USER("user"),
@@ -9,7 +15,7 @@ public enum Server {
 
     private final String keyword;
 
-    Server(String keyword) {
+    Key(String keyword) {
         this.keyword = keyword;
     }
 

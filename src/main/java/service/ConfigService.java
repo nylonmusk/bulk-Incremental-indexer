@@ -2,9 +2,8 @@ package service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import constant.Key;
 import constant.Type;
-import constant.Keyword;
-import constant.column.Server;
 import validation.ConfigValidator;
 import view.Log;
 
@@ -37,9 +36,9 @@ public class ConfigService {
         return configData.containsKey(type.get());
     }
 
-    public Object getConfig(Server server) {
+    public Object getConfig(Key key) {
         if (ConfigValidator.isValid(configData, Type.SERVER.get())) {
-            return configData.get(Type.SERVER.get()).get(server.get());
+            return configData.get(Type.SERVER.get()).get(key.get());
         }
         return null;
     }
@@ -52,8 +51,8 @@ public class ConfigService {
     }
 
     public String getDumpPath(Type type) {
-        if (ConfigValidator.isValid(configData, type.get(), Keyword.DUMP_PATH.get())) {
-            return configData.get(type.get()).get(Keyword.DUMP_PATH.get()).toString();
+        if (ConfigValidator.isValid(configData, type.get(), Key.DUMP_PATH.get())) {
+            return configData.get(type.get()).get(Key.DUMP_PATH.get()).toString();
         }
         return null;
     }

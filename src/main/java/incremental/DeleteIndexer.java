@@ -1,8 +1,7 @@
 package incremental;
 
 import config.ElasticConfiguration;
-import constant.column.Insert;
-import constant.column.Put;
+import constant.Key;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -36,10 +35,6 @@ public class DeleteIndexer extends Indexer {
     }
 
     private String getId() {
-        return config.get(Put.ID.get()).toString();
-    }
-
-    private String getDumpPath() {
-        return config.get(Insert.DUMP_PATH.get()).toString();
+        return config.get(Key.ID.get()).toString();
     }
 }

@@ -1,8 +1,7 @@
 package incremental;
 
 import config.ElasticConfiguration;
-import constant.column.Insert;
-import constant.column.Put;
+import constant.Key;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -48,10 +47,6 @@ public class InsertIndexer extends Indexer {
     }
 
     private String getId() {
-        return config.get(Put.ID.get()).toString();
-    }
-
-    private String getDumpPath() {
-        return config.get(Insert.DUMP_PATH.get()).toString();
+        return config.get(Key.ID.get()).toString();
     }
 }

@@ -2,8 +2,7 @@ package incremental;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import config.ElasticConfiguration;
-import constant.column.Insert;
-import constant.column.Put;
+import constant.Key;
 import dump.DataReader;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.get.GetRequest;
@@ -58,10 +57,10 @@ public class UpdateIndexer extends Indexer {
     }
 
     private String getId() {
-        return config.get(Put.ID.get()).toString();
+        return config.get(Key.ID.get()).toString();
     }
 
     private String getDumpPath() {
-        return config.get(Insert.DUMP_PATH.get()).toString();
+        return config.get(Key.DUMP_PATH.get()).toString();
     }
 }

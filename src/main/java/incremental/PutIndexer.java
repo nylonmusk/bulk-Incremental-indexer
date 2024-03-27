@@ -1,7 +1,7 @@
 package incremental;
 
 import config.ElasticConfiguration;
-import constant.column.Put;
+import constant.Key;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -48,26 +48,22 @@ public class PutIndexer extends Indexer {
         BulkResponse bulkResponse = elasticConfiguration.getElasticClient().bulk(bulkRequest, RequestOptions.DEFAULT);
         bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
         if (bulkResponse.hasFailures()) {
-            Log.info(PutIndexer.class.getName(), "Bulk insert failed: " + bulkResponse.buildFailureMessage());
+            Log.info(PutIndexer.class.getName(), "Bulk put failed: " + bulkResponse.buildFailureMessage());
         } else {
-            Log.info(PutIndexer.class.getName(), "Bulk insert successful");
+            Log.info(PutIndexer.class.getName(), "Bulk put successful");
         }
     }
 
     private String getId() {
-        return config.get(Put.ID.get()).toString();
+        return config.get(Key.ID.get()).toString();
     }
 
     private Map<String, Object> getSettings() {
-        return (Map<String, Object>) config.get(Put.SETTINGS.get());
+        return (Map<String, Object>) config.get(Key.SETTINGS.get());
     }
 
     private Map<String, Object> getMappings() {
-        return (Map<String, Object>) config.get(Put.MAPPINGS.get());
-    }
-
-    private Map<String, Object> getDump() {
-        return (Map<String, Object>) config.get(Put.DUMP_PATH.get());
+        return (Map<String, Object>) config.get(Key.MAPPINGS.get());
     }
 
     private boolean indexExists(ElasticConfiguration elasticConfiguration, String index) throws IOException {

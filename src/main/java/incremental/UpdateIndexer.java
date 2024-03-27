@@ -14,8 +14,17 @@ import java.io.IOException;
 import java.util.Map;
 
 public class UpdateIndexer {
+    Map<String, Object> updateConfig;
+    ElasticConfiguration elasticConfiguration;
+    String index;
 
-    public void update(ElasticConfiguration elasticConfiguration, String index, Map<String, Object> updateConfig) throws IOException {
+    public UpdateIndexer(Map<String, Object> updateConfig, ElasticConfiguration elasticConfiguration, String index) {
+        this.updateConfig = updateConfig;
+        this.elasticConfiguration = elasticConfiguration;
+        this.index = index;
+    }
+
+    public void update() throws IOException {
         final String id = updateConfig.get(Update.ID.get()).toString();
         final String updateDumpPath = updateConfig.get(Update.UPDATE_DUMP_PATH.get()).toString();
         final UpdateRequest request = new UpdateRequest(index, id);
@@ -24,7 +33,7 @@ public class UpdateIndexer {
         String json = dataReader.readJsonFileToString(updateDumpPath);
         request.doc(json, XContentType.JSON);
         UpdateResponse updateResponse = elasticConfiguration.getElasticClient().update(request, RequestOptions.DEFAULT);
-
+        updateResponse.setForcedRefresh(true);
         if (updateResponse.getResult() == DocWriteResponse.Result.UPDATED) {
             Log.info(UpdateIndexer.class.getName(), "Bulk update successful");
         } else if (updateResponse.getResult() == DocWriteResponse.Result.NOOP) {

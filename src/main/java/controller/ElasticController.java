@@ -1,7 +1,6 @@
 package controller;
 
-
-import bulk.BulkIndexer;
+import incremental.BulkIndexer;
 import config.ElasticConfiguration;
 import constant.ActionType;
 import constant.Server;
@@ -45,23 +44,23 @@ public class ElasticController {
 
     private void put(ElasticConfiguration elasticConfiguration, String index) throws IOException {
         List<Map<String, Object>> jsonData = dataReader.readJsonFileToList(configService.getDumpPath(ActionType.PUT));
-        BulkIndexer bulkIndexer = new BulkIndexer(configService.getPutConfig(), jsonData);
-        bulkIndexer.put(elasticConfiguration, index);
+        BulkIndexer bulkIndexer = new BulkIndexer(configService.getPutConfig(), jsonData, elasticConfiguration, index);
+        bulkIndexer.put();
     }
 
     private void insert(ElasticConfiguration elasticConfiguration, String index) throws IOException {
         List<Map<String, Object>> jsonData = dataReader.readJsonFileToList(configService.getDumpPath(ActionType.INSERT));
-        PutIndexer putIndexer = new PutIndexer(jsonData);
-        putIndexer.put(elasticConfiguration, index, jsonData);
+        PutIndexer putIndexer = new PutIndexer(jsonData, elasticConfiguration, index);
+        putIndexer.put();
     }
 
     private void update(ElasticConfiguration elasticConfiguration, String index) throws IOException {
-        UpdateIndexer updateIndexer = new UpdateIndexer();
-        updateIndexer.update(elasticConfiguration, index, configService.getUpdateConfig());
+        UpdateIndexer updateIndexer = new UpdateIndexer(configService.getUpdateConfig(), elasticConfiguration, index);
+        updateIndexer.update();
     }
 
     private void delete(ElasticConfiguration elasticConfiguration, String index) throws IOException {
-        DeleteIndexer deleteIndexer = new DeleteIndexer();
-        deleteIndexer.delete(elasticConfiguration, index, configService.getDeleteConfig());
+        DeleteIndexer deleteIndexer = new DeleteIndexer(configService.getDeleteConfig(), elasticConfiguration, index);
+        deleteIndexer.delete();
     }
 }

@@ -14,23 +14,25 @@ import java.util.List;
 import java.util.Map;
 
 public class PutIndexer {
-
     List<Map<String, Object>> jsonData;
+    ElasticConfiguration elasticConfiguration;
+    String index;
 
-    public PutIndexer(List<Map<String, Object>> jsonData) {
+    public PutIndexer(List<Map<String, Object>> jsonData, ElasticConfiguration elasticConfiguration, String index) {
         this.jsonData = jsonData;
+        this.elasticConfiguration = elasticConfiguration;
+        this.index = index;
     }
 
-    public void put(ElasticConfiguration elasticConfiguration, String index, List<Map<String, Object>> jsonData) throws IOException {
+    public void put() throws IOException {
         BulkRequest bulkRequest = new BulkRequest();
         for (Map<String, Object> data : jsonData) {
             IndexRequest indexRequest = new IndexRequest(index).source(data, XContentType.JSON);
             bulkRequest.add(indexRequest);
         }
-        bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
 
         BulkResponse bulkResponse = elasticConfiguration.getElasticClient().bulk(bulkRequest, RequestOptions.DEFAULT);
-
+        bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
         if (bulkResponse.hasFailures()) {
             Log.error(PutIndexer.class.getName(), "Bulk insert failed: " + bulkResponse.buildFailureMessage());
         } else {

@@ -1,4 +1,4 @@
-package bulk;
+package incremental;
 
 import config.ElasticConfiguration;
 import constant.Put;
@@ -6,6 +6,7 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -18,13 +19,17 @@ import java.util.Map;
 public class BulkIndexer {
     Map<String, Object> putConfig;
     List<Map<String, Object>> jsonData;
+    ElasticConfiguration elasticConfiguration;
+    String index;
 
-    public BulkIndexer(Map<String, Object> putConfig, List<Map<String, Object>> jsonData) {
+    public BulkIndexer(Map<String, Object> putConfig, List<Map<String, Object>> jsonData, ElasticConfiguration elasticConfiguration, String index) {
         this.putConfig = putConfig;
         this.jsonData = jsonData;
+        this.elasticConfiguration = elasticConfiguration;
+        this.index = index;
     }
 
-    public void put(ElasticConfiguration elasticConfiguration, String index) throws IOException {
+    public void put() throws IOException {
         if (indexExists(elasticConfiguration, index)) {
             elasticConfiguration.getElasticClient().indices().delete(new DeleteIndexRequest(index), RequestOptions.DEFAULT);
         }
@@ -42,6 +47,7 @@ public class BulkIndexer {
         }
 
         BulkResponse bulkResponse = elasticConfiguration.getElasticClient().bulk(bulkRequest, RequestOptions.DEFAULT);
+        bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
         if (bulkResponse.hasFailures()) {
             Log.info(BulkIndexer.class.getName(), "Bulk insert failed: " + bulkResponse.buildFailureMessage());
         } else {

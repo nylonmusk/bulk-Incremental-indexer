@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 public class DataReader {
+
     public List<Map<String, Object>> readJsonFileToList(String filePath) throws IOException {
         String jsonContent = new String(Files.readAllBytes(Paths.get(filePath)));
         return Collections.unmodifiableList(new ObjectMapper().readValue(jsonContent, List.class));

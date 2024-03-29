@@ -19,40 +19,57 @@ import java.util.Map;
 
 public class UpdateIndexer extends Indexer {
 
+
     public UpdateIndexer(ElasticConfiguration elasticConfiguration, List<Map<String, Object>> jsonData, String index, Map<String, Object> updateConfig) {
         super(elasticConfiguration, jsonData, index, updateConfig);
     }
 
     @Override
-    public void execute() throws IOException {
+    public void execute() {
+        try {
+            updateDocuments();
+        } catch (IOException e) {
+            Log.error(UpdateIndexer.class.getName(), "IOException occurred: " + e.getMessage());
+        }
+    }
+
+    private void updateDocuments() throws IOException {
         final String updateId = getId();
         final String dumpPath = getDumpPath();
         final DataReader dataReader = new DataReader();
+        final ObjectMapper objectMapper = new ObjectMapper();
         String json = dataReader.readJsonFileToString(dumpPath);
-        List<Map<String, Object>> jsonData = new ObjectMapper().readValue(json, List.class);
+        List<Map<String, Object>> jsonData = objectMapper.readValue(json, List.class);
 
         for (Map<String, Object> data : jsonData) {
-            final String id = data.get(updateId).toString();
-            GetRequest getRequest = new GetRequest(index, id);
-            GetResponse getResponse = elasticConfiguration.getElasticClient().get(getRequest, RequestOptions.DEFAULT);
-            if (getResponse.isExists()) {
-                Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
+            updateDocument(objectMapper, data, updateId);
+        }
+    }
 
-                if (sourceAsMap.get("es_id").toString().equals(id)) {
-                    String updatedJson = new ObjectMapper().writeValueAsString(data);
-                    UpdateRequest request = new UpdateRequest(index, id).doc(updatedJson, XContentType.JSON);
-                    UpdateResponse updateResponse = elasticConfiguration.getElasticClient().update(request, RequestOptions.DEFAULT);
-                    updateResponse.setForcedRefresh(true);
+    private void updateDocument(ObjectMapper objectMapper, Map<String, Object> data, String updateId) throws IOException {
+        final String id = data.get(updateId).toString();
+        GetRequest getRequest = new GetRequest(index, id);
+        GetResponse getResponse = elasticConfiguration.getElasticClient().get(getRequest, RequestOptions.DEFAULT);
+        if (getResponse.isExists()) {
+            Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
 
-                    if (updateResponse.getResult() == DocWriteResponse.Result.UPDATED) {
-                        Log.info(UpdateIndexer.class.getName(), "Bulk update successful with ID : " + id);
-                    } else if (updateResponse.getResult() == DocWriteResponse.Result.NOOP) {
-                        Log.info(UpdateIndexer.class.getName(), "Bulk already updated with ID : " + id);
-                    } else {
-                        Log.error(UpdateIndexer.class.getName(), "Bulk update failed with ID : " + id + " " + updateResponse.getResult());
-                    }
-                }
+            if (sourceAsMap.get(Key.TARGET_ID.get()).toString().equals(id)) {
+                String updatedJson = objectMapper.writeValueAsString(data);
+                UpdateRequest request = new UpdateRequest(index, id).doc(updatedJson, XContentType.JSON);
+                UpdateResponse updateResponse = elasticConfiguration.getElasticClient().update(request, RequestOptions.DEFAULT);
+                updateResponse.setForcedRefresh(true);
+                handleUpdateResponse(updateResponse, id);
             }
+        }
+    }
+
+    private void handleUpdateResponse(UpdateResponse updateResponse, String id) {
+        if (updateResponse.getResult() == DocWriteResponse.Result.UPDATED) {
+            Log.info(UpdateIndexer.class.getName(), "Bulk update successful with ID : " + id);
+        } else if (updateResponse.getResult() == DocWriteResponse.Result.NOOP) {
+            Log.info(UpdateIndexer.class.getName(), "Bulk already updated with ID : " + id);
+        } else {
+            Log.error(UpdateIndexer.class.getName(), "Bulk update failed with ID : " + id + " " + updateResponse.getResult());
         }
     }
 

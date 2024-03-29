@@ -22,7 +22,17 @@ public class InsertIndexer extends Indexer {
     }
 
     @Override
-    public void execute() throws IOException {
+    public void execute() {
+        try {
+            bulkIndexData();
+        } catch (IndexNotFoundException e) {
+            handleIndexNotFoundException();
+        } catch (IOException e) {
+            handleIOException(e);
+        }
+    }
+
+    private void bulkIndexData() throws IOException {
         final String id = getId();
         final BulkRequest bulkRequest = new BulkRequest();
 
@@ -33,17 +43,26 @@ public class InsertIndexer extends Indexer {
             bulkRequest.add(indexRequest);
         }
 
-        try {
-            BulkResponse bulkResponse = elasticConfiguration.getElasticClient().bulk(bulkRequest, RequestOptions.DEFAULT);
-            bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
-            if (bulkResponse.hasFailures()) {
-                Log.error(InsertIndexer.class.getName(), "Bulk insert failed: " + bulkResponse.buildFailureMessage());
-            } else {
-                Log.info(InsertIndexer.class.getName(), "Bulk insert successful");
-            }
-        } catch (IndexNotFoundException e) {
-            Log.error(InsertIndexer.class.getName(), "Index not found: " + index);
+        BulkResponse bulkResponse = elasticConfiguration.getElasticClient().bulk(bulkRequest, RequestOptions.DEFAULT);
+        bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
+
+        handleBulkResponse(bulkResponse);
+    }
+
+    private static void handleBulkResponse(BulkResponse bulkResponse) {
+        if (bulkResponse.hasFailures()) {
+            Log.error(InsertIndexer.class.getName(), "Bulk insert failed: " + bulkResponse.buildFailureMessage());
+        } else {
+            Log.info(InsertIndexer.class.getName(), "Bulk insert successful");
         }
+    }
+
+    private void handleIndexNotFoundException() {
+        Log.error(InsertIndexer.class.getName(), "Index not found: " + index);
+    }
+
+    private void handleIOException(IOException e) {
+        Log.error(InsertIndexer.class.getName(), "IOException occurred: " + e.getMessage());
     }
 
     private String getId() {

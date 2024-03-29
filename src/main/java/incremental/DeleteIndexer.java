@@ -13,24 +13,33 @@ import java.util.List;
 import java.util.Map;
 
 public class DeleteIndexer extends Indexer {
+
     public DeleteIndexer(ElasticConfiguration elasticConfiguration, List<Map<String, Object>> jsonData, String index, Map<String, Object> deleteConfig) {
         super(elasticConfiguration, jsonData, index, deleteConfig);
     }
 
     @Override
-    public void execute() throws IOException {
-        final String deleteId = getId();
+    public void execute() {
+        try {
+            final String deleteId = getId();
 
-        for (Map<String, Object> data : jsonData) {
-            final String id = data.get(deleteId).toString();
-            DeleteRequest request = new DeleteRequest(index, id);
-            DeleteResponse deleteResponse = elasticConfiguration.getElasticClient().delete(request, RequestOptions.DEFAULT);
-            deleteResponse.setForcedRefresh(true);
-            if (deleteResponse.getResult() == DocWriteResponse.Result.DELETED || deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND) {
-                Log.info(DeleteIndexer.class.getName(), "Bulk delete successful with ID : " + " " + id);
-            } else {
-                Log.error(DeleteIndexer.class.getName(), "Bulk delete failed with ID : " + " " + id);
+            for (Map<String, Object> data : jsonData) {
+                final String id = data.get(deleteId).toString();
+                final DeleteRequest request = new DeleteRequest(index, id);
+                DeleteResponse deleteResponse = elasticConfiguration.getElasticClient().delete(request, RequestOptions.DEFAULT);
+                deleteResponse.setForcedRefresh(true);
+                handleDeleteResponse(deleteResponse, id);
             }
+        } catch (IOException e) {
+            Log.error(DeleteIndexer.class.getName(), "IOException occurred: " + e.getMessage());
+        }
+    }
+
+    private static void handleDeleteResponse(DeleteResponse deleteResponse, String id) {
+        if (deleteResponse.getResult() == DocWriteResponse.Result.DELETED || deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND) {
+            Log.info(DeleteIndexer.class.getName(), "Bulk delete successful with ID : " + " " + id);
+        } else {
+            Log.error(DeleteIndexer.class.getName(), "Bulk delete failed with ID : " + " " + id);
         }
     }
 

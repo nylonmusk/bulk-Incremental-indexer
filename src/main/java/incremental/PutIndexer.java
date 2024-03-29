@@ -23,20 +23,33 @@ public class PutIndexer extends Indexer {
     }
 
     @Override
-    public void execute() throws IOException {
+    public void execute() {
+        try {
+            deleteExistingIndexIfExists();
+            createIndex();
+            bulkIndexData();
+        } catch (IOException e) {
+            handleIOException(e);
+        }
+    }
 
+    private void deleteExistingIndexIfExists() throws IOException {
         if (indexExists(elasticConfiguration, index)) {
             elasticConfiguration.getElasticClient().indices().delete(new DeleteIndexRequest(index), RequestOptions.DEFAULT);
         }
+    }
 
+    private void createIndex() throws IOException {
+        final CreateIndexRequest createIndexRequest = new CreateIndexRequest(index);
+        createIndexRequest.settings(getSettings());
+        createIndexRequest.mapping(getMappings());
+
+        elasticConfiguration.getElasticClient().indices().create(createIndexRequest, RequestOptions.DEFAULT);
+    }
+
+    private void bulkIndexData() throws IOException {
         final BulkRequest bulkRequest = new BulkRequest();
         final String id = getId();
-        final Map<String, Object> settings = getSettings();
-        final Map<String, Object> mappings = getMappings();
-
-        final CreateIndexRequest createIndexRequest = new CreateIndexRequest(index);
-        createIndexRequest.settings(settings);
-        createIndexRequest.mapping(mappings);
 
         for (Map<String, Object> data : jsonData) {
             IndexRequest indexRequest = new IndexRequest(index)
@@ -47,11 +60,20 @@ public class PutIndexer extends Indexer {
 
         BulkResponse bulkResponse = elasticConfiguration.getElasticClient().bulk(bulkRequest, RequestOptions.DEFAULT);
         bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
+
+        handlePutResponse(bulkResponse);
+    }
+
+    private static void handlePutResponse(BulkResponse bulkResponse) {
         if (bulkResponse.hasFailures()) {
             Log.info(PutIndexer.class.getName(), "Bulk put failed: " + bulkResponse.buildFailureMessage());
         } else {
             Log.info(PutIndexer.class.getName(), "Bulk put successful");
         }
+    }
+
+    private void handleIOException(IOException e) {
+        Log.error(PutIndexer.class.getName(), "IOException occurred: " + e.getMessage());
     }
 
     private String getId() {

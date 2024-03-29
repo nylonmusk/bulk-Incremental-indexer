@@ -2,7 +2,6 @@ package incremental;
 
 import config.ElasticConfiguration;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +18,6 @@ public abstract class Indexer {
         this.config = config;
     }
 
-    public abstract void execute() throws IOException;
+    public abstract void execute();
 
 }

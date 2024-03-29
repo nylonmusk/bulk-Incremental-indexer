@@ -5,8 +5,6 @@ import config.ElasticConfiguration;
 import constant.Key;
 import dump.DataReader;
 import org.elasticsearch.action.DocWriteResponse;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -18,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 
 public class UpdateIndexer extends Indexer {
-
 
     public UpdateIndexer(ElasticConfiguration elasticConfiguration, List<Map<String, Object>> jsonData, String index, Map<String, Object> updateConfig) {
         super(elasticConfiguration, jsonData, index, updateConfig);
@@ -48,19 +45,10 @@ public class UpdateIndexer extends Indexer {
 
     private void updateDocument(ObjectMapper objectMapper, Map<String, Object> data, String updateId) throws IOException {
         final String id = data.get(updateId).toString();
-        GetRequest getRequest = new GetRequest(index, id);
-        GetResponse getResponse = elasticConfiguration.getElasticClient().get(getRequest, RequestOptions.DEFAULT);
-        if (getResponse.isExists()) {
-            Map<String, Object> sourceAsMap = getResponse.getSourceAsMap();
-
-            if (sourceAsMap.get(Key.TARGET_ID.get()).toString().equals(id)) {
-                String updatedJson = objectMapper.writeValueAsString(data);
-                UpdateRequest request = new UpdateRequest(index, id).doc(updatedJson, XContentType.JSON);
-                UpdateResponse updateResponse = elasticConfiguration.getElasticClient().update(request, RequestOptions.DEFAULT);
-                updateResponse.setForcedRefresh(true);
-                handleUpdateResponse(updateResponse, id);
-            }
-        }
+        UpdateRequest request = new UpdateRequest(index, id).doc(objectMapper.writeValueAsString(data), XContentType.JSON);
+        UpdateResponse updateResponse = elasticConfiguration.getElasticClient().update(request, RequestOptions.DEFAULT);
+        updateResponse.setForcedRefresh(true);
+        handleUpdateResponse(updateResponse, id);
     }
 
     private void handleUpdateResponse(UpdateResponse updateResponse, String id) {

@@ -2,6 +2,7 @@ package constant;
 
 public enum Key {
     ID("id"),
+    TARGET_ID("es_id"),
     DUMP_PATH("dumpPath"),
 
     SETTINGS("settings"),
